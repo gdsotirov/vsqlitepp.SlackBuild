@@ -23,7 +23,7 @@
 . ../../slack-package.conf
 
 NAME=vsqlite++
-VERSION=0.3.13
+VERSION=0.4.0
 BUILD=${BUILD:-1}
 ARCH=${ARCH:-i586}
 
@@ -53,19 +53,23 @@ tar --extract --verbose --file="$CWD/$NAME-$VERSION.tar.gz" || exit 3
 cd $SRC
 fix_source
 
-# Configure
-CFLAGS="$SLKCFLAGS" \
-CXXFLAGS="$SLKCFLAGS" \
-./configure --build="$ARCH-slackware-linux" \
-            --host="$ARCH-slackware-linux" \
-            --prefix=/usr \
-            --libdir=/usr/lib${LIBDIRSUFFIX} \
-            --enable-shared=yes \
-            --enable-static=no || exit 4
+# Configure, make & install
+mkdir build; cd build
+cmake -LAH \
+      -DBUILD_SHARED_LIBS=ON \
+      -DBUILD_TESTING=OFF \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_CXX_FLAGS="${SLKCFLAGS} -std=c++20" \
+      -DCMAKE_INSTALL_LIBDIR=lib${LIBDIRSUFFIX} \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DVSQLITE_BUILD_EXAMPLES=ON \
+      -DVSQLITE_BUILD_TESTS=OFF \
+      .. || exit 4
 
 # Build & install
-make --jobs all || exit 5
-make DESTDIR=$PKG install || exit 6
+# Requires GCC 13+ for std::format
+make VERBOSE=1 --jobs || exit 5
+make DESTDIR=$PKG VERBOSE=1 install || exit 6
 
 # Prepare
 bin_perms $PKG
